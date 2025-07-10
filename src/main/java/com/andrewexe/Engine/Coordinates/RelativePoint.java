@@ -1,4 +1,4 @@
-package com.andrewexe.Engine;
+package com.andrewexe.Engine.Coordinates;
 
 import javafx.geometry.Point2D;
 
@@ -7,20 +7,20 @@ import javafx.geometry.Point2D;
  * Класс, который представляет относительные координаты точки в игровом окне.
  * Используется для хранения относительных координат и абсолютных координат точки.
  */
-public class RelativePointCoordinate {
+public class RelativePoint {
     private int x;
     private int y;
     // X, Y выступают как относительные координаты,
     // в то время как coordinates представляет абсолютные координаты в окне
     private Point2D coordinates;
 
-    public RelativePointCoordinate(int x, int y, Point2D coordinates) {
+    public RelativePoint(int x, int y, Point2D coordinates) {
         this.x = x;
         this.y = y;
         this.coordinates = coordinates;
     }
 
-    public RelativePointCoordinate(int x, int y) {
+    public RelativePoint(int x, int y) {
         this.x = x;
         this.y = y;
         this.coordinates = null;

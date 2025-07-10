@@ -1,5 +1,11 @@
 package com.andrewexe.Engine;
 
+import com.andrewexe.Engine.Coordinates.Point;
+import com.andrewexe.Engine.Coordinates.RelativeCoordinateSystem;
+import com.andrewexe.Engine.Coordinates.RelativePoint;
+import com.andrewexe.Engine.Map.MapGenerator;
+import com.andrewexe.Engine.Map.MapLevel;
+import com.andrewexe.Engine.Primitives.RelativeVector;
 import javafx.geometry.Point2D;
 import javafx.scene.Group;
 import javafx.scene.layout.Pane;
@@ -10,6 +16,8 @@ import javafx.scene.shape.Line;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class Renderer {
     /**
@@ -84,10 +92,10 @@ public class Renderer {
         }
         this.root.getChildren().add(grids); // отрисовка сетки
         getGridIntersections();
-        RelativePointCoordinate vec_start = getRelativePoint(3, 2); // Начало вектора
-        RelativePointCoordinate vec_end = getRelativePoint(6, 3); // Конец вектора
-        drawStereoVector(vec_start, vec_end);
-        //drawDots();
+        RelativePoint vec_start = getRelativePoint(3, 2); // Начало вектора
+        RelativePoint vec_end = getRelativePoint(6, 3); // Конец вектора
+        //drawStereoVector(vec_start, vec_end);
+        drawGravityDefiedMap();
     }
 
 
@@ -135,7 +143,7 @@ public class Renderer {
         Circle dot = new Circle(pt.getX(), pt.getY(), 3, Color.LIMEGREEN);
         dot.setStroke(Color.DARKGREEN);
         dot.setOnMouseClicked(e -> {
-            RelativePointCoordinate rel = getRelativeCoordinates(pt);
+            RelativePoint rel = getRelativeCoordinates(pt);
             System.out.println("Clicked at: (" + pt.getX() + ", " + pt.getY() + ") | relative: (" + rel.getX() + ", " + rel.getY() + ")");
         });
         root.getChildren().add(dot);
@@ -144,15 +152,20 @@ public class Renderer {
     /**
      * Получить относительные координаты точки (от левого нижнего угла)
      */
-    private RelativePointCoordinate getRelativeCoordinates(Point2D pt) {
+    private RelativePoint getRelativeCoordinates(Point2D pt) {
         int x = (int) Math.round(pt.getX() / cellSize);
         int y = (int) Math.round((height - pt.getY()) / cellSize);
-        return new RelativePointCoordinate(x, y, pt);
+        return new RelativePoint(x, y, pt);
     }
 
-    private RelativePointCoordinate getRelativePoint(int x, int y){
-        return new RelativePointCoordinate(x, y, getAbsoluteCoordinates(x, y));
+    private RelativePoint getRelativePoint(int x, int y){
+        return new RelativePoint(x, y, getAbsoluteCoordinates(x, y));
     }
+
+    private RelativePoint getRelativePoint(Point pt) {
+        return new RelativePoint(pt.getX(), pt.getY(), getAbsoluteCoordinates(pt.getX(), pt.getY()));
+    }
+
     /**
      * Получить абсолютные координаты точки из относительных координат.
      * Используется для отрисовки векторов и других элементов.
@@ -175,27 +188,39 @@ public class Renderer {
      * Нарисовать RelativeVector по относительным координатам (x1, y1) -> (x2, y2).
      * Является базовым методом для отрисовки карты в 2D без ортографии.
      */
-    public void drawRelativeVector(RelativePointCoordinate start, RelativePointCoordinate end) {
+    public void drawRelativeVector(RelativePoint start, RelativePoint end) {
         RelativeVector vector = new RelativeVector(start, end);
         root.getChildren().add(vector);
     }
 
     private RelativeVector getProjectionVector(RelativeVector originalVector) {
-        // Получаем координаты начала и конца вектора
-        int startX = getRelXFromAbsX((int)originalVector.getStartX()); // abs
-        int startY = getRelYFromAbsY((int)originalVector.getStartY()); // abs
-        int endX = getRelXFromAbsX((int)originalVector.getEndX()); // abs
-        int endY = getRelYFromAbsY((int)originalVector.getEndY()); // abs
+        // Получаем координаты начала и конца вектора в относительных координатах
+        int startX = getRelXFromAbsX((int)originalVector.getStartX());
+        int startY = getRelYFromAbsY((int)originalVector.getStartY());
+        int endX = getRelXFromAbsX((int)originalVector.getEndX());
+        int endY = getRelYFromAbsY((int)originalVector.getEndY());
 
-        // Создаем новый вектор с учетом смещения
-        RelativePointCoordinate stereoStart = getRelativePoint(startX - STEREO_OFFSET, startY + STEREO_OFFSET);
-        RelativePointCoordinate stereoEnd = getRelativePoint(endX - STEREO_OFFSET, endY + STEREO_OFFSET);
+        // Вычисляем направление вектора
+        double dx = endX - startX;
+        double dy = endY - startY;
+        double length = Math.sqrt(dx * dx + dy * dy);
+        if (length == 0) length = 1; // чтобы не делить на 0
+
+        // Вектор нормали (перпендикулярный исходному, для параллельного смещения)
+        double nx = -dy / length;
+        double ny = dx / length;
+
+        // Смещаем обе точки на STEREO_OFFSET вдоль нормали
+        double offsetX = nx * STEREO_OFFSET;
+        double offsetY = ny * STEREO_OFFSET;
+
+        RelativePoint stereoStart = getRelativePoint((int)Math.round(startX + offsetX), (int)Math.round(startY + offsetY));
+        RelativePoint stereoEnd = getRelativePoint((int)Math.round(endX + offsetX), (int)Math.round(endY + offsetY));
 
         return new RelativeVector(stereoStart, stereoEnd);
-
     }
 
-    public void drawStereoVector(RelativePointCoordinate start, RelativePointCoordinate end){
+    public void drawStereoVector(RelativePoint start, RelativePoint end){
         RelativeVector front = new RelativeVector(start, end);
         RelativeVector projection = getProjectionVector(front);
         front.setStroke(Color.RED);
@@ -203,5 +228,77 @@ public class Renderer {
         front.setStrokeWidth(2);
         projection.setStrokeWidth(2);
         root.getChildren().addAll(front, projection);
+    }
+
+    public void drawGravityDefiedMap() {
+        MapGenerator generator = new MapGenerator();
+        List<Point> points = generator.generateGravityDefiedPoints();
+        String filename = "level_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".txt";
+        ArrayList<RelativeVector> vectors = new ArrayList<>();
+        for (int i = 1; i < points.size(); i++) {
+            Point p1 = points.get(i - 1);
+            Point p2 = points.get(i);
+            RelativePoint relStart = getRelativePoint(p1);
+            RelativePoint relEnd = getRelativePoint(p2);
+            drawRelativeVector(relStart, relEnd);
+            vectors.add(new RelativeVector(relStart, relEnd));
+        }
+        try {
+            MapLevel level = new MapLevel();
+            level.loadMap(vectors);
+            level.saveToFile(filename);
+            System.out.println("Level saved to: " + filename);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        // Спавн игрока в середине первого сегмента (на первом векторе)
+        if (points.size() > 1) {
+            Point p1 = points.get(0);
+            Point p2 = points.get(1);
+            // Находим координаты середины первого сегмента
+            double x = (p1.getX() + p2.getX()) / 2.0;
+            double y = (p1.getY() + p2.getY()) / 2.0;
+            Point2D abs = getAbsoluteCoordinates((int)x, (int)y);
+            drawSimpleBike(400, 300, Math.toRadians(0)); // Рисуем велосипед в центре экрана
+        }
+    }
+
+    /**
+     * Рисует примитивный велосипед из фигур (два круга и прямоугольник)
+     */
+    public void drawSimpleBike(double x, double y, double angle) {
+        double wheelRadius = cellSize * 0.7;
+        double frameLength = cellSize * 2.5;
+        double frameHeight = cellSize * 0.3;
+        // Центры колёс
+        double x1 = x - frameLength / 2 * Math.cos(angle);
+        double y1 = y - frameLength / 2 * Math.sin(angle);
+        double x2 = x + frameLength / 2 * Math.cos(angle);
+        double y2 = y + frameLength / 2 * Math.sin(angle);
+
+        // Центр велосипеда (середина между колёсами)
+        double centerX = (x1 + x2) / 2;
+        double centerY = (y1 + y2) / 2;
+
+        javafx.scene.shape.Circle wheel1 = new javafx.scene.shape.Circle(x1, y1, wheelRadius);
+        javafx.scene.shape.Circle wheel2 = new javafx.scene.shape.Circle(x2, y2, wheelRadius);
+        wheel1.setFill(javafx.scene.paint.Color.TRANSPARENT);
+        wheel1.setStroke(javafx.scene.paint.Color.BLACK);
+        wheel2.setFill(javafx.scene.paint.Color.TRANSPARENT);
+        wheel2.setStroke(javafx.scene.paint.Color.BLACK);
+
+        // Рама (прямоугольник между колёсами)
+        double frameX = centerX - frameLength / 2;
+        double frameY = centerY - frameHeight / 2;
+        javafx.scene.shape.Rectangle frame = new javafx.scene.shape.Rectangle(frameX, frameY, frameLength, frameHeight);
+        frame.setFill(javafx.scene.paint.Color.RED);
+        frame.setRotate(Math.toDegrees(angle));
+        frame.setArcHeight(frameHeight * 0.7);
+        frame.setArcWidth(frameHeight * 0.7);
+
+        Group bikeGroup = new Group();
+        bikeGroup.getChildren().addAll(wheel1, wheel2, frame);
+
+        root.getChildren().add(bikeGroup);
     }
 }

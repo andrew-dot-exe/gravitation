@@ -1,11 +1,12 @@
-package com.andrewexe.Engine;
+package com.andrewexe.Engine.Primitives;
 
+import com.andrewexe.Engine.Coordinates.RelativePoint;
 import javafx.scene.shape.Line;
 
 public class RelativeVector extends Line {
     // Представляет собой враппер над Line с относительными координатами
 
-    public RelativeVector(RelativePointCoordinate start, RelativePointCoordinate end) {
+    public RelativeVector(RelativePoint start, RelativePoint end) {
         super();
         this.setStartX(start.getAbsX());
         this.setStartY(start.getAbsY());

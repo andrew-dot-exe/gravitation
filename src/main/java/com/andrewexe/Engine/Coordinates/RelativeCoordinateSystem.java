@@ -1,4 +1,4 @@
-package com.andrewexe.Engine;
+package com.andrewexe.Engine.Coordinates;
 
 import javafx.geometry.Point2D;
 import javafx.scene.shape.Line;
