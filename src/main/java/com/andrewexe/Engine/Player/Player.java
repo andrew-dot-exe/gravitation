@@ -1,30 +1,51 @@
 package com.andrewexe.Engine.Player;
 
 import com.andrewexe.Engine.Physics.RigidBody;
-import com.andrewexe.Engine.Renderable;
+import com.andrewexe.Engine.GameObject;
+import javafx.scene.Group;
+import javafx.scene.Node;
+import javafx.scene.shape.Shape;
 
-public class Player extends RigidBody implements Renderable {
-    public Player(double mass) {
+public class Player extends RigidBody implements GameObject {
+
+    Group playerModel;
+
+    public Player(Group playerModel, double mass) {
         super(mass);
+        this.playerModel = playerModel;
     }
 
     @Override
-    public void render() {
+    public void update() {
 
     }
 
-    @Override
-    public void transform() {
+    public void rotate(double angle) {
+        playerModel.setRotate(playerModel.getRotate() + angle);
+    }
+
+    public void translate(double x, double y) {
+        playerModel.setTranslateX(playerModel.getTranslateX() + x);
+        playerModel.setTranslateY(playerModel.getTranslateY() + y);
+    }
+
+    public void scale(double factor) {
+        playerModel.setScaleX(playerModel.getScaleX() * factor);
+        playerModel.setScaleY(playerModel.getScaleY() * factor);
+    }
+
+    public void rotateWheel(){
 
     }
 
-    @Override
-    public void move() {
-
+    public Node getLeftWheel() {
+        return playerModel.getChildren().get(0);
     }
 
-    @Override
-    public void setRotation() {
-
+    public Group getPlayerModel() {
+        return playerModel;
     }
+
+
+
 }

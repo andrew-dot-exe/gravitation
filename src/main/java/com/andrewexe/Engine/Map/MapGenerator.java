@@ -1,37 +1,37 @@
 package com.andrewexe.Engine.Map;
 
-import com.andrewexe.Engine.Coordinates.Point;
+import javafx.geometry.Point2D;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Line;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MapGenerator {
     // Параметры генерации карты
-    private final int MAX_HEIGHT = 20; // максимальная высота (ось Y)
-    private final int SEGMENT_LENGTH = 3; // длина одного сегмента по X
-    private final int MAP_LENGTH = 60; // количество сегментов
-    private final int MIN_HEIGHT = 2; // минимальная высота
+    public static final int MAX_HEIGHT = 80; // максимальная высота (ось Y)
+    public static final int SEGMENT_LENGTH = 10; // длина одного сегмента по X
+    public static final int MAP_LENGTH = 60; // количество сегментов
+    public static final int MIN_HEIGHT = 2; // минимальная высота
 
-    /**
-     * Генерирует карту в стиле Gravity Defied как массив Point
-     */
-    public List<Point> generateGravityDefiedPoints() {
-        List<Point> points = new ArrayList<>();
-        java.util.Random random = new java.util.Random();
-        int prevY = MAX_HEIGHT / 2;
-        Point prevPoint = new Point(0, prevY);
-        points.add(prevPoint);
-        for (int i = 1; i <= MAP_LENGTH; i++) {
-            int deltaY = random.nextInt(7) - 3; // [-3,3] плавные перепады
-            if (random.nextDouble() < 0.1) {
-                deltaY += random.nextBoolean() ? random.nextInt(6) : -random.nextInt(6); // иногда резкие трамплины
-            }
-            int newY = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, prevY + deltaY));
-            Point nextPoint = new Point(i * SEGMENT_LENGTH, newY);
-            points.add(nextPoint);
-            prevPoint = nextPoint;
-            prevY = newY;
-        }
-        return points;
+    public static ArrayList<Line> generateMap(){
+        ArrayList<Line> mapLines = new ArrayList<>();
+                double x = 0;
+                double y = (Math.random() * (MAX_HEIGHT-  MIN_HEIGHT)) + MIN_HEIGHT; // начальная высота в диапазоне MIN_HEIGHT..MAX_HEIGHT
+
+                for (int i = 0; i < MAP_LENGTH; i++) {
+                    double nextY = y + (Math.random() - 0.5) * 6; // случайное изменение высоты
+                    nextY = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, nextY)); // ограничение по MIN_HEIGHT и MAX_HEIGHT
+
+                    Line segment = new Line(x, y, x + SEGMENT_LENGTH, nextY);
+                    segment.setStroke(Color.BLACK);
+                    mapLines.add(segment);
+
+                    x += SEGMENT_LENGTH;
+                    y = nextY;
+                }
+
+                return mapLines;
     }
+
 }

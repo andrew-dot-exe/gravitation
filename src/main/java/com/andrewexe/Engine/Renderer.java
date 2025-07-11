@@ -1,28 +1,31 @@
 package com.andrewexe.Engine;
 
-import com.andrewexe.Engine.Coordinates.Point;
-import com.andrewexe.Engine.Coordinates.RelativeCoordinateSystem;
-import com.andrewexe.Engine.Coordinates.RelativePoint;
 import com.andrewexe.Engine.Map.MapGenerator;
-import com.andrewexe.Engine.Map.MapLevel;
-import com.andrewexe.Engine.Primitives.RelativeVector;
+import com.andrewexe.Engine.Player.Player;
+import com.andrewexe.Game.PlayerModel;
 import javafx.geometry.Point2D;
 import javafx.scene.Group;
+import javafx.scene.Node;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
+import javafx.scene.shape.Shape;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 public class Renderer {
     /**
      * Класс, который отвечает за отрисовку уровня и игрока.
      */
+
+    private final int WINDOW_WIDTH = 1280;
+    private final int WINDOW_HEIGHT = 720;
+
+    private final int VISIBLE_SEGMENTS = 10; // Количество видимых сегментов карты
+
     private final int FPS = 60;
     private final int STEREO_OFFSET = 2;
     public static final int ROWS = 30;
@@ -30,10 +33,16 @@ public class Renderer {
     private int width;
     private int height;
     private final Color GRID_COLOR = Color.rgb(120, 200, 240);
+
+    private ArrayList<Line> verticalLines = new ArrayList<>();
+    private ArrayList<Line> horizontalLines = new ArrayList<>();
+    private ArrayList<Line> mapLines;
+
     private List<Point2D> gridIntersections;
 
+
+    // сетка нужна как помощник и как элемент стилизации
     private Group grids;
-    private Random rnd;
 
     public Pane getRoot() {
         return root;
@@ -42,33 +51,95 @@ public class Renderer {
     // JavaFX
     private final Pane root;
 
-    private Renderable player;
-    private Renderable level;
+    private GameObject level;
+
+    private Canvas infoCanvas;
+    private GraphicsContext infoGC;
 
     public Renderer(int width, int height) {
         this.root = new Pane();
-        this.rnd = new Random();
         this.grids = new Group();
         this.width = width;
         this.height = height;
         this.gridIntersections = new ArrayList<>();
         this.grids.setCache(true);
         this.grids.setAutoSizeChildren(true);
-        getGrids(width, height);
+        this.getGrids();
+        this.drawMap(VISIBLE_SEGMENTS);
+        this.drawLastSegmentStartLine();
 
+        //this.drawPlayerCentered();
+
+//        this.infoCanvas = new Canvas(400, 40); // ширина и высота области для текста
+//        this.infoGC = infoCanvas.getGraphicsContext2D();
+//        this.root.getChildren().add(infoCanvas);
     }
 
+    private void drawRawMap(){
+        List<Line> mapLines = MapGenerator.generateMap();
+        for (Line line : mapLines) {
+            line.setStroke(Color.BLACK);
+            this.root.getChildren().add(line);
+        }
+    }
+
+    private Line getSegment(int segmentIndex) {
+        if (segmentIndex < 0 || segmentIndex >= mapLines.size()) {
+            System.out.println("Invalid segment index: " + segmentIndex);
+            return null;
+        }
+        return mapLines.get(segmentIndex);
+    }
+
+    private void drawMap(int segments) {
+        mapLines = MapGenerator.generateMap();
+
+        // Получаем максимальные размеры карты
+        double mapWidth = MapGenerator.MAP_LENGTH * MapGenerator.SEGMENT_LENGTH; // MAP_LENGTH * SEGMENT_LENGTH
+        double mapHeight = MapGenerator.MAX_HEIGHT;    // MAX_HEIGHT
+
+        // Вычисляем коэффициенты масштабирования
+        double scaleX = (double) width / mapWidth;
+        System.out.println("scaleX: " + scaleX);
+        if(scaleX < 1){
+            System.out.println("Map must been cropped and ready to POV setup!");
+        }
+        double scaleY = (double) (height / 3) / mapHeight + 10; // например, карта занимает нижнюю треть окна
+
+
+        // Смещение по Y для размещения карты у нижнего края
+        double offsetY = height - (mapHeight * scaleY);
+
+        for (Line line : mapLines) {
+            // Масштабируем координаты
+            line.setStartX(line.getStartX() * scaleX);
+            line.setEndX(line.getEndX() * scaleX);
+            line.setStartY(line.getStartY() * scaleY + offsetY);
+            line.setEndY(line.getEndY() * scaleY + offsetY);
+
+            // Добавляем обработчик клика
+            line.setOnMouseClicked(event -> {
+                line.setStrokeWidth(3);
+                System.out.println("Line clicked: #" + mapLines.indexOf(line) + ", startX=" + line.getStartX() + ", startY=" + line.getStartY() +
+                        ", endX=" + line.getEndX() + ", endY=" + line.getEndY());
+            });
+
+            this.root.getChildren().add(line);
+        }
+    }
 
     /**
      * Обновление игрового поля каждый кадр
      */
     public void update(double deltaTime) {
+        //showInfo("FPS: " + (int) (1 / deltaTime) + ", Delta Time: " + deltaTime);
+        // player.rotate(1);
     }
 
     /**
-     * Рисует клеточки для работы с масштабом и относительными координатами
+     * Рисуе�� клеточки для работы с масштабом и относительными координатами
      */
-    private void getGrids(int width, int height) {
+    private void getGrids() {
         int cellHeight = (int) height / ROWS;
 
         System.out.println(height);
@@ -79,6 +150,7 @@ public class Renderer {
             line.setEndX(i);
             line.setEndY(this.height);
             line.setStroke(GRID_COLOR);
+            this.horizontalLines.add(line);
             this.grids.getChildren().add(line);
         }
         for (int j = 0; j < height; j += cellHeight) {
@@ -88,217 +160,54 @@ public class Renderer {
             line.setEndX(this.width);
             line.setEndY(j);
             line.setStroke(GRID_COLOR);
+            this.verticalLines.add(line);
             this.grids.getChildren().add(line);
         }
         this.root.getChildren().add(grids); // отрисовка сетки
-        getGridIntersections();
-        RelativePoint vec_start = getRelativePoint(3, 2); // Начало вектора
-        RelativePoint vec_end = getRelativePoint(6, 3); // Конец вектора
         //drawStereoVector(vec_start, vec_end);
-        drawGravityDefiedMap();
+
     }
 
-
-    /**
-     * Метод для получения точек пересечения линий сетки.
-     * Важен для работы относительных координат.
-     */
-    private void getGridIntersections() {
-        List<Line> lines = getGridList();
-        this.cellSize = (double) height / ROWS; // Размер ячейки сетки
-        // Отличается от такого же в методе drawGrids тем
-        // что дает точное значение, а не округленное
-        gridIntersections = RelativeCoordinateSystem.findGridIntersections(lines, cellSize);
+    public void showInfo(String text) {
+        infoGC.clearRect(0, 0, infoCanvas.getWidth(), infoCanvas.getHeight());
+        infoGC.setFill(Color.WHITE);
+        infoGC.fillRect(0, 0, infoCanvas.getWidth(), infoCanvas.getHeight());
+        infoGC.setFill(Color.BLACK);
+        infoGC.fillText(text, 10, 25);
     }
 
-    /**
-     * Отрисовка точек пересечения сетки.
-     * Используется для отладки и визуализации относительных координат.
-     */
-    private void drawDots() {
-        for (Point2D pt : gridIntersections) {
-            drawIntersectionCircle(pt);
+    public void drawPlayerCentered(Player player){
+        player.getPlayerModel().setLayoutX(width / 2 - player.getPlayerModel().getBoundsInParent().getWidth() / 2);
+        player.getPlayerModel().setLayoutY(height / 2 - player.getPlayerModel().getBoundsInParent().getHeight() / 2);
+        this.root.getChildren().add(player.getPlayerModel());
+    }
+
+    public void placePlayer(Player player){
+        Line segment = getSegment(2); // Получаем первый сегмент карты
+        if (segment != null) {
+            double startX = segment.getStartX();
+            double startY = segment.getStartY();
+            double endX = segment.getEndX();
+            double endY = segment.getEndY();
+            double angle = Math.atan2(endY - startY, endX - startX) * 180 / Math.PI;
+            player.getPlayerModel().setLayoutX(startX - player.getPlayerModel().getBoundsInParent().getWidth() / 2);
+            player.getPlayerModel().setLayoutY(startY - player.getPlayerModel().getBoundsInParent().getHeight() / 2);
+            player.getPlayerModel().setRotate(angle);
+            this.root.getChildren().add(player.getPlayerModel());
+        } else {
+            System.out.println("Segment not found for placing the player.");
         }
     }
 
-    /**
-     * Получить список линий сетки.
-     * Используется для получения точек пересечения.
-     */
-    private List<Line> getGridList() {
-        List<Line> lines = new ArrayList<>();
-        for (var node : grids.getChildren()) {
-            if (node instanceof Line) {
-                lines.add((Line) node);
-            }
-        }
-        return lines;
+    public void drawLastSegmentStartLine() {
+        if (mapLines == null || mapLines.isEmpty()) return;
+        Line lastSegment = mapLines.get(mapLines.size() - 3);
+        double x = lastSegment.getStartX();
+        double y = lastSegment.getStartY();
+        Line verticalLine = new Line(x, 0, x, height);
+        verticalLine.setStroke(Color.RED);
+        verticalLine.setStrokeWidth(2);
+        this.root.getChildren().add(verticalLine);
     }
 
-    /**
-     * Нарисовать ОДНУ точку пересечения сетки.
-     * Используется для отладки и визуализации относительных координат.
-     */
-    private void drawIntersectionCircle(Point2D pt) {
-        Circle dot = new Circle(pt.getX(), pt.getY(), 3, Color.LIMEGREEN);
-        dot.setStroke(Color.DARKGREEN);
-        dot.setOnMouseClicked(e -> {
-            RelativePoint rel = getRelativeCoordinates(pt);
-            System.out.println("Clicked at: (" + pt.getX() + ", " + pt.getY() + ") | relative: (" + rel.getX() + ", " + rel.getY() + ")");
-        });
-        root.getChildren().add(dot);
-    }
-
-    /**
-     * Получить относительные координаты точки (от левого нижнего угла)
-     */
-    private RelativePoint getRelativeCoordinates(Point2D pt) {
-        int x = (int) Math.round(pt.getX() / cellSize);
-        int y = (int) Math.round((height - pt.getY()) / cellSize);
-        return new RelativePoint(x, y, pt);
-    }
-
-    private RelativePoint getRelativePoint(int x, int y){
-        return new RelativePoint(x, y, getAbsoluteCoordinates(x, y));
-    }
-
-    private RelativePoint getRelativePoint(Point pt) {
-        return new RelativePoint(pt.getX(), pt.getY(), getAbsoluteCoordinates(pt.getX(), pt.getY()));
-    }
-
-    /**
-     * Получить абсолютные координаты точки из относительных координат.
-     * Используется для отрисовки векторов и других элементов.
-     */
-    private Point2D getAbsoluteCoordinates(int x, int y) {
-        double x_abs = x * cellSize;
-        double y_abs = height - y * cellSize; // Координаты от левого нижнего угла
-        return new Point2D(x_abs, y_abs);
-    }
-
-    private int getRelXFromAbsX(int absX) {
-        return (int) Math.round(absX / cellSize);
-    }
-
-    private int getRelYFromAbsY(int absY) {
-        return (int) Math.round((height - absY) / cellSize);
-    }
-
-    /**
-     * Нарисовать RelativeVector по относительным координатам (x1, y1) -> (x2, y2).
-     * Является базовым методом для отрисовки карты в 2D без ортографии.
-     */
-    public void drawRelativeVector(RelativePoint start, RelativePoint end) {
-        RelativeVector vector = new RelativeVector(start, end);
-        root.getChildren().add(vector);
-    }
-
-    private RelativeVector getProjectionVector(RelativeVector originalVector) {
-        // Получаем координаты начала и конца вектора в относительных координатах
-        int startX = getRelXFromAbsX((int)originalVector.getStartX());
-        int startY = getRelYFromAbsY((int)originalVector.getStartY());
-        int endX = getRelXFromAbsX((int)originalVector.getEndX());
-        int endY = getRelYFromAbsY((int)originalVector.getEndY());
-
-        // Вычисляем направление вектора
-        double dx = endX - startX;
-        double dy = endY - startY;
-        double length = Math.sqrt(dx * dx + dy * dy);
-        if (length == 0) length = 1; // чтобы не делить на 0
-
-        // Вектор нормали (перпендикулярный исходному, для параллельного смещения)
-        double nx = -dy / length;
-        double ny = dx / length;
-
-        // Смещаем обе точки на STEREO_OFFSET вдоль нормали
-        double offsetX = nx * STEREO_OFFSET;
-        double offsetY = ny * STEREO_OFFSET;
-
-        RelativePoint stereoStart = getRelativePoint((int)Math.round(startX + offsetX), (int)Math.round(startY + offsetY));
-        RelativePoint stereoEnd = getRelativePoint((int)Math.round(endX + offsetX), (int)Math.round(endY + offsetY));
-
-        return new RelativeVector(stereoStart, stereoEnd);
-    }
-
-    public void drawStereoVector(RelativePoint start, RelativePoint end){
-        RelativeVector front = new RelativeVector(start, end);
-        RelativeVector projection = getProjectionVector(front);
-        front.setStroke(Color.RED);
-        projection.setStroke(Color.BLUE);
-        front.setStrokeWidth(2);
-        projection.setStrokeWidth(2);
-        root.getChildren().addAll(front, projection);
-    }
-
-    public void drawGravityDefiedMap() {
-        MapGenerator generator = new MapGenerator();
-        List<Point> points = generator.generateGravityDefiedPoints();
-        String filename = "level_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".txt";
-        ArrayList<RelativeVector> vectors = new ArrayList<>();
-        for (int i = 1; i < points.size(); i++) {
-            Point p1 = points.get(i - 1);
-            Point p2 = points.get(i);
-            RelativePoint relStart = getRelativePoint(p1);
-            RelativePoint relEnd = getRelativePoint(p2);
-            drawRelativeVector(relStart, relEnd);
-            vectors.add(new RelativeVector(relStart, relEnd));
-        }
-        try {
-            MapLevel level = new MapLevel();
-            level.loadMap(vectors);
-            level.saveToFile(filename);
-            System.out.println("Level saved to: " + filename);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        // Спавн игрока в середине первого сегмента (на первом векторе)
-        if (points.size() > 1) {
-            Point p1 = points.get(0);
-            Point p2 = points.get(1);
-            // Находим координаты середины первого сегмента
-            double x = (p1.getX() + p2.getX()) / 2.0;
-            double y = (p1.getY() + p2.getY()) / 2.0;
-            Point2D abs = getAbsoluteCoordinates((int)x, (int)y);
-            drawSimpleBike(400, 300, Math.toRadians(0)); // Рисуем велосипед в центре экрана
-        }
-    }
-
-    /**
-     * Рисует примитивный велосипед из фигур (два круга и прямоугольник)
-     */
-    public void drawSimpleBike(double x, double y, double angle) {
-        double wheelRadius = cellSize * 0.7;
-        double frameLength = cellSize * 2.5;
-        double frameHeight = cellSize * 0.3;
-        // Центры колёс
-        double x1 = x - frameLength / 2 * Math.cos(angle);
-        double y1 = y - frameLength / 2 * Math.sin(angle);
-        double x2 = x + frameLength / 2 * Math.cos(angle);
-        double y2 = y + frameLength / 2 * Math.sin(angle);
-
-        // Центр велосипеда (середина между колёсами)
-        double centerX = (x1 + x2) / 2;
-        double centerY = (y1 + y2) / 2;
-
-        javafx.scene.shape.Circle wheel1 = new javafx.scene.shape.Circle(x1, y1, wheelRadius);
-        javafx.scene.shape.Circle wheel2 = new javafx.scene.shape.Circle(x2, y2, wheelRadius);
-        wheel1.setFill(javafx.scene.paint.Color.TRANSPARENT);
-        wheel1.setStroke(javafx.scene.paint.Color.BLACK);
-        wheel2.setFill(javafx.scene.paint.Color.TRANSPARENT);
-        wheel2.setStroke(javafx.scene.paint.Color.BLACK);
-
-        // Рама (прямоугольник между колёсами)
-        double frameX = centerX - frameLength / 2;
-        double frameY = centerY - frameHeight / 2;
-        javafx.scene.shape.Rectangle frame = new javafx.scene.shape.Rectangle(frameX, frameY, frameLength, frameHeight);
-        frame.setFill(javafx.scene.paint.Color.RED);
-        frame.setRotate(Math.toDegrees(angle));
-        frame.setArcHeight(frameHeight * 0.7);
-        frame.setArcWidth(frameHeight * 0.7);
-
-        Group bikeGroup = new Group();
-        bikeGroup.getChildren().addAll(wheel1, wheel2, frame);
-
-        root.getChildren().add(bikeGroup);
-    }
 }

@@ -1,22 +1,18 @@
 package com.andrewexe.Engine.Coordinates;
 
-/*
-    * Класс, который представляет относительные координаты точки.
-    * Используется для хранения относительных координат точки.
-    * Этот класс нужен только для  хранения, классом для отрисовки является RelativePoint.
- */
 public class Point {
-    private int x;
-    private int y;
+    private double x;
+    private double y;
 
-    public Point(int x, int y) {
+    public Point(double x, double y) {
         this.x = x;
         this.y = y;
     }
-    public int getX() {
+
+    public double getX() {
         return x;
     }
-    public int getY() {
+    public double getY() {
         return y;
     }
 
