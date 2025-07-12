@@ -23,6 +23,12 @@ public class MapGenerator {
                     double nextY = y + (Math.random() - 0.5) * 6; // случайное изменение высоты
                     nextY = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, nextY)); // ограничение по MIN_HEIGHT и MAX_HEIGHT
 
+                    if(nextY > MAX_HEIGHT) {
+                        nextY = MAX_HEIGHT;
+                    } else if(nextY < MIN_HEIGHT) {
+                        nextY = MIN_HEIGHT;
+                    }
+
                     Line segment = new Line(x, y, x + SEGMENT_LENGTH, nextY);
                     segment.setStroke(Color.BLACK);
                     mapLines.add(segment);

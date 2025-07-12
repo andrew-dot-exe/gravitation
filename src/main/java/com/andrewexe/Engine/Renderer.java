@@ -95,8 +95,21 @@ public class Renderer {
         mapLines = MapGenerator.generateMap();
 
         // Получаем максимальные размеры карты
-        double mapWidth = MapGenerator.MAP_LENGTH * MapGenerator.SEGMENT_LENGTH; // MAP_LENGTH * SEGMENT_LENGTH
-        double mapHeight = MapGenerator.MAX_HEIGHT;    // MAX_HEIGHT
+        double mapWidth = 0;// MapGenerator.MAP_LENGTH * MapGenerator.SEGMENT_LENGTH; // MAP_LENGTH * SEGMENT_LENGTH
+        double mapHeight = 0; //MapGenerator.MAX_HEIGHT;    // MAX_HEIGHT
+
+
+
+        for(Line line : mapLines) {
+            if(Math.max(line.getStartX(), line.getEndX()) > mapWidth) {
+                mapWidth = Math.max(line.getStartX(), line.getEndX());
+            }
+            if(Math.max(line.getStartY(), line.getEndY()) > mapHeight){
+            mapHeight = Math.max(line.getStartY(), line.getEndY()) ;
+            }
+        }
+
+        System.out.println("Map width: " + mapWidth + ", Map height: " + mapHeight);
 
         // Вычисляем коэффициенты масштабирования
         double scaleX = (double) width / mapWidth;
@@ -104,18 +117,20 @@ public class Renderer {
         if(scaleX < 1){
             System.out.println("Map must been cropped and ready to POV setup!");
         }
-        double scaleY = (double) (height / 3) / mapHeight + 10; // например, карта занимает нижнюю треть окна
+        double scaleY = (double) (height / 3) / mapHeight; // например, карта занимает нижнюю треть окна
 
-
+        System.out.println("scaleY: " + scaleY);
         // Смещение по Y для размещения карты у нижнего края
-        double offsetY = height - (mapHeight * scaleY);
+        double offsetY = height - (mapHeight);
+        System.out.println("offsetY: " + offsetY);
 
         for (Line line : mapLines) {
             // Масштабируем координаты
             line.setStartX(line.getStartX() * scaleX);
             line.setEndX(line.getEndX() * scaleX);
-            line.setStartY(line.getStartY() * scaleY + offsetY);
-            line.setEndY(line.getEndY() * scaleY + offsetY);
+            line.setStartY(line.getStartY() * scaleY);
+            line.setEndY(line.getEndY() * scaleY) ;
+            line.setStrokeWidth(4);
 
             // Добавляем обработчик клика
             line.setOnMouseClicked(event -> {

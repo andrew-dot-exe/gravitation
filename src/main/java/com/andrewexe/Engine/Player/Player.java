@@ -17,7 +17,13 @@ public class Player extends RigidBody implements GameObject {
 
     @Override
     public void update() {
+        move(5,5);
+    }
 
+
+    public void move(double x, double y) {
+        playerModel.setTranslateX(playerModel.getTranslateX() + x);
+        playerModel.setTranslateY(playerModel.getTranslateY() + y);
     }
 
     public void rotate(double angle) {
