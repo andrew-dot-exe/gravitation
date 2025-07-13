@@ -21,7 +21,7 @@ import java.util.Random;
  */
 public class App extends Application {
     private final int MIN_WINDOW_WIDTH = 1280;
-    private final int MIN_WINDOW_HEIGHT = 720;
+    private final int MIN_WINDOW_HEIGHT = 800;
 
 
     private Scene scene;
@@ -98,6 +98,7 @@ public class App extends Application {
                     lastTime = now;
                 }
                 deltaTime = (now - lastTime) / 1_000_000_000.0;
+                //getFps(now);
 //                player.rotate(1);
                 player.update(deltaTime);
                 checkBounds();
@@ -110,7 +111,7 @@ public class App extends Application {
 
             private void checkBounds() {
                 double playerX = player.getPlayerModel().getTranslateX();
-                double playerY = player.getPlayerModel().getTranslateY();
+                double playerY = player.getBottomEdgeY();
                 double width = renderer.getRoot().getWidth();
                 double height = renderer.getRoot().getHeight();
 
@@ -119,12 +120,15 @@ public class App extends Application {
                 } else if (playerX + player.getPlayerModel().getBoundsInParent().getWidth() > width) {
                     player.getPlayerModel().setTranslateX(width - player.getPlayerModel().getBoundsInParent().getWidth());
                 }
-
-                if (playerY < 0) {
+                if(playerY > height) {
+                    player.setFreeFalling(false); // останавливаем свободное падение
+                    player.setOffsetBottomEdgeY(height - playerY);
+//                    player.getPlayerModel().setTranslateY(height - 200);
+                } else if (playerY < 0) {
                     player.getPlayerModel().setTranslateY(0);
-                } else if (playerY + player.getPlayerModel().getBoundsInParent().getHeight() > height) {
-                    player.getPlayerModel().setTranslateY(height - player.getPlayerModel().getBoundsInParent().getHeight());
                 }
+
+                //System.out.println("Player coords: X:" + player.getPlayerModel().getTranslateX() + ", Y: " + player.getPlayerModel().getTranslateY() );
             }
 
             private Double getFps(long now) {

@@ -4,12 +4,12 @@ com/andrewexe/Engine/Physics/PhysicsInteractable.class
 com/andrewexe/Engine/InputHandler.class
 com/andrewexe/Engine/Coordinates/Point.class
 com/andrewexe/Engine/Physics/RigidBody.class
-com/andrewexe/Engine/Physics/Ground.class
 module-info.class
-com/andrewexe/Game/PlayerModel.class
+com/andrewexe/Engine/Physics/Ground.class
 com/andrewexe/SystemInfo.class
-com/andrewexe/Engine/Player/Player.class
+com/andrewexe/Game/PlayerModel.class
 com/andrewexe/App$1.class
+com/andrewexe/Engine/Player/Player.class
 com/andrewexe/App.class
 com/andrewexe/Engine/Renderer.class
 com/andrewexe/App$2.class

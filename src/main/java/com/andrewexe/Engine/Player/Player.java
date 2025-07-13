@@ -2,6 +2,7 @@ package com.andrewexe.Engine.Player;
 
 import com.andrewexe.Engine.Physics.RigidBody;
 import com.andrewexe.Engine.GameObject;
+import javafx.geometry.Bounds;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.shape.Shape;
@@ -35,6 +36,12 @@ public class Player extends RigidBody implements GameObject {
     private double speed = 0;
     private boolean isMoving = false;
 
+    public void setFreeFalling(boolean freeFalling) {
+        isFreeFalling = freeFalling;
+    }
+
+    private boolean isFreeFalling = true;
+
     public Player(Group playerModel, double mass) {
         super(mass);
         this.playerModel = playerModel;
@@ -58,9 +65,10 @@ public class Player extends RigidBody implements GameObject {
         // Здесь можно добавить логику для применения гравитации к игроку.
         // Например, можно уменьшать y-координату игрока на значение, пропорциональное времени кадра.
         double gravityForce = gravity * deltaTime;
-        if(getBottomEdgeY() + gravityForce > 0) { // Проверяем, чтобы игрок не ушел ниже нуля
+        if (isFreeFalling) {
             playerModel.setTranslateY(playerModel.getTranslateY() + gravityForce);
         }
+        System.out.println(getBottomEdgeY());
         //playerModel.setTranslateY(playerModel.getTranslateY() + gravityForce);
     }
 
@@ -108,14 +116,14 @@ public class Player extends RigidBody implements GameObject {
     }
 
     public double getBottomEdgeY() {
-        double bottomY = Double.MIN_VALUE;
-        for (Node node : playerModel.getChildren()) {
-            double nodeBottom = node.getBoundsInParent().getMaxY();
-            if (nodeBottom > bottomY) {
-                bottomY = nodeBottom;
-            }
-        }
-        return bottomY;
+        Bounds boundsInScene = playerModel.localToScene(playerModel.getBoundsInLocal());
+        System.out.println(boundsInScene);
+        return boundsInScene.getMaxY();
+    }
+
+    public void setOffsetBottomEdgeY(double offsetY) {
+        Bounds boundsInScene = playerModel.localToScene(playerModel.getBoundsInLocal());
+        playerModel.setTranslateY(playerModel.getTranslateY() + offsetY);
     }
 
     public void move(double x, double y) {

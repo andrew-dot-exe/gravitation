@@ -21,15 +21,10 @@ public class Renderer {
      * Класс, который отвечает за отрисовку уровня и игрока.
      */
 
-    private final int WINDOW_WIDTH = 1280;
-    private final int WINDOW_HEIGHT = 720;
 
     private final int VISIBLE_SEGMENTS = 10; // Количество видимых сегментов карты
 
-    private final int FPS = 60;
-    private final int STEREO_OFFSET = 2;
     public static final int ROWS = 30;
-    private double cellSize = 0; // Размер ячейки сетки, будет вычислен при инициализации
     private int width;
     private int height;
     private final Color GRID_COLOR = Color.rgb(120, 200, 240);
