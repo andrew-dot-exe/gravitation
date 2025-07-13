@@ -32,10 +32,6 @@ public class App extends Application {
 
 
     private void addListeners() {
-        scene.addEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST, event -> {
-            System.out.println("Window close requested");
-            // Здесь можно добавить логику сохранения состояния или очистки ресурсов
-        });
         scene.setOnKeyPressed(event -> {
             switch (event.getCode()) {
                 case A:
@@ -64,12 +60,6 @@ public class App extends Application {
                     break;
             }
         });
-        //        scene.widthProperty().addListener((obs, oldVal, newVal) -> {
-//            render.onScreenResize();
-//        });
-//        scene.heightProperty().addListener((obs, oldVal, newVal) -> {
-//            render.onScreenResize();
-//        });
     }
 
     @Override
@@ -98,15 +88,13 @@ public class App extends Application {
                     lastTime = now;
                 }
                 deltaTime = (now - lastTime) / 1_000_000_000.0;
-                //getFps(now);
-//                player.rotate(1);
                 player.update(deltaTime);
+                player.moveWithSlopeAndCollision(renderer, deltaTime);
                 checkBounds();
                 renderer.update(deltaTime);
-                renderer.showInfo("Axis accel: " + player.getAxisAcceleration() +
-                        ", Brake: " + player.getBrakeAcceleration() +
-                        ", Handbrake: " + player.getHandbrakeAcceleration()+
-                        ", Delta Time: " + deltaTime);
+                if(renderer.isRestartingState()){
+                    restartGame();
+                }
             }
 
             private void checkBounds() {
@@ -130,8 +118,6 @@ public class App extends Application {
                 } else if (playerY < 0) {
                     player.getPlayerModel().setTranslateY(0);
                 }
-
-                //System.out.println("Player coords: X:" + player.getPlayerModel().getTranslateX() + ", Y: " + player.getPlayerModel().getTranslateY() );
             }
 
             private Double getFps(long now) {
@@ -153,6 +139,12 @@ public class App extends Application {
                 return deltaTime;
             }
         }.start();
+    }
+
+    private void restartGame() {
+        renderer.restart();
+        player = new Player(PlayerModel.getPlayerModel(), 1.0);
+        renderer.placePlayer(player);
     }
 
     public static void main(String[] args) {

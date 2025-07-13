@@ -1,9 +1,6 @@
 package com.andrewexe.Engine.Physics;
 
 public class RigidBody implements PhysicsInteractable {
-    // Класс, который представляет собой физическое тело в игровом мире.
-    // Он содержит информацию о массе, скорости, ускорении и т.д.
-    // Этот класс будет использоваться для физического моделирования объектов в игре.
 
     private double mass;
     private double velocity;

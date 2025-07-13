@@ -6,6 +6,8 @@ import javafx.geometry.Bounds;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.shape.Shape;
+import com.andrewexe.Engine.Renderer;
+import javafx.scene.shape.Line;
 
 public class Player extends RigidBody implements GameObject {
 
@@ -42,6 +44,10 @@ public class Player extends RigidBody implements GameObject {
 
     private boolean isFreeFalling = true;
 
+    private double velocityY = 0; // Вертикальная скорость для гравитации
+    private double velocityX = 0; // Горизонтальная скорость для инерции
+    private final double friction = 0.98; // Коэффициент трения (затухания)
+
     public Player(Group playerModel, double mass) {
         super(mass);
         this.playerModel = playerModel;
@@ -54,11 +60,22 @@ public class Player extends RigidBody implements GameObject {
     }
 
     public void update(double deltaTime) {
-        if (!isMoving) { // isMoving — булева переменная, true если кнопка движения нажата
-            brakeAcceleration(deltaTime); // deltaTime — время между кадрами
+        // Управление ускорением (газ/тормоз)
+        if (isMoving) {
+            // Ускорение по оси X
+            velocityX += xAxisAcceleration * maxSpeed * deltaTime;
+            // Ограничение максимальной скорости
+            if (velocityX > maxSpeed) velocityX = maxSpeed;
+            if (velocityX < -maxSpeed) velocityX = -maxSpeed;
+        } else {
+            // Затухание скорости (инерция)
+            velocityX *= friction;
+            if (Math.abs(velocityX) < 0.01) velocityX = 0;
         }
-        move(xAxisAcceleration * maxSpeed, 0);
-        applyGravity(deltaTime); // Применяем гравитацию к игроку
+        // Перемещение по X с учётом инерции
+        playerModel.setTranslateX(playerModel.getTranslateX() + velocityX);
+        // Вертикальное движение и гравитация
+        //moveWithSlopeAndCollision(renderer, deltaTime);
     }
 
     private void applyGravity(double deltaTime) {
@@ -68,7 +85,7 @@ public class Player extends RigidBody implements GameObject {
         if (isFreeFalling) {
             playerModel.setTranslateY(playerModel.getTranslateY() + gravityForce);
         }
-        System.out.println(getBottomEdgeY());
+        //System.out.println(getBottomEdgeY());
         //playerModel.setTranslateY(playerModel.getTranslateY() + gravityForce);
     }
 
@@ -81,6 +98,11 @@ public class Player extends RigidBody implements GameObject {
         } else {
             this.xAxisAcceleration += step;
         }
+    }
+
+    public void vectorMove(double step){
+        incrementXAxisAcceleration(step);
+
     }
 
     public void brakeAcceleration(double deltaTime) {
@@ -117,7 +139,7 @@ public class Player extends RigidBody implements GameObject {
 
     public double getBottomEdgeY() {
         Bounds boundsInScene = playerModel.localToScene(playerModel.getBoundsInLocal());
-        System.out.println(boundsInScene);
+        //System.out.println(boundsInScene);
         return boundsInScene.getMaxY();
     }
 
@@ -166,7 +188,80 @@ public class Player extends RigidBody implements GameObject {
 
     public boolean setMoving(boolean isMoving) {
         this.isMoving = isMoving;
+        // Если отпустили газ/тормоз — ускорение сбрасываем, но скорость сохраняется
+        if (!isMoving) xAxisAcceleration = 0;
         return this.isMoving;
+    }
+
+    public void moveWithSlopeAndCollision(Renderer renderer, double deltaTime) {
+        Shape leftWheel = getPlayerLeftWheel();
+        Shape rightWheel = getPlayerRightWheel();
+        double leftWheelCenterX = leftWheel.localToScene(leftWheel.getBoundsInLocal()).getCenterX();
+        double rightWheelCenterX = rightWheel.localToScene(rightWheel.getBoundsInLocal()).getCenterX();
+        double leftWheelRadius = leftWheel.getBoundsInLocal().getWidth() / 2.0;
+        double rightWheelRadius = rightWheel.getBoundsInLocal().getWidth() / 2.0;
+        Line leftLine = null, rightLine = null;
+        double leftMinDist = Double.MAX_VALUE, rightMinDist = Double.MAX_VALUE;
+        for (Line line : renderer.getMapLines()) {
+            double x1 = line.getStartX();
+            double x2 = line.getEndX();
+            if (leftWheelCenterX >= Math.min(x1, x2) && leftWheelCenterX <= Math.max(x1, x2)) {
+                double dist = Math.abs(leftWheelCenterX - x1);
+                if (dist < leftMinDist) {
+                    leftMinDist = dist;
+                    leftLine = line;
+                }
+            }
+            if (rightWheelCenterX >= Math.min(x1, x2) && rightWheelCenterX <= Math.max(x1, x2)) {
+                double dist = Math.abs(rightWheelCenterX - x1);
+                if (dist < rightMinDist) {
+                    rightMinDist = dist;
+                    rightLine = line;
+                }
+            }
+        }
+        boolean onGround = false;
+        double newY = playerModel.getTranslateY();
+        double angleDeg = 0;
+        if (leftLine != null && rightLine != null) {
+            double lx1 = leftLine.getStartX(), ly1 = leftLine.getStartY();
+            double lx2 = leftLine.getEndX(), ly2 = leftLine.getEndY();
+            double rx1 = rightLine.getStartX(), ry1 = rightLine.getStartY();
+            double rx2 = rightLine.getEndX(), ry2 = rightLine.getEndY();
+            double leftGroundY = ly1 + (ly2 - ly1) * (leftWheelCenterX - lx1) / (lx2 - lx1);
+            double rightGroundY = ry1 + (ry2 - ry1) * (rightWheelCenterX - rx1) / (rx2 - rx1);
+            double leftOffset = leftGroundY - (leftWheel.localToScene(leftWheel.getBoundsInLocal()).getMaxY());
+            double rightOffset = rightGroundY - (rightWheel.localToScene(rightWheel.getBoundsInLocal()).getMaxY());
+            newY += Math.min(leftOffset, rightOffset);
+            angleDeg = Math.toDegrees(Math.atan2(rightGroundY - leftGroundY, rightWheelCenterX - leftWheelCenterX));
+            onGround = true;
+        } else if (leftLine != null) {
+            double lx1 = leftLine.getStartX(), ly1 = leftLine.getStartY();
+            double lx2 = leftLine.getEndX(), ly2 = leftLine.getEndY();
+            double leftGroundY = ly1 + (ly2 - ly1) * (leftWheelCenterX - lx1) / (lx2 - lx1);
+            double leftOffset = leftGroundY - (leftWheel.localToScene(leftWheel.getBoundsInLocal()).getMaxY());
+            newY += leftOffset;
+            angleDeg = Math.toDegrees(Math.atan2(ly2 - ly1, lx2 - lx1));
+            onGround = true;
+        } else if (rightLine != null) {
+            double rx1 = rightLine.getStartX(), ry1 = rightLine.getStartY();
+            double rx2 = rightLine.getEndX(), ry2 = rightLine.getEndY();
+            double rightGroundY = ry1 + (ry2 - ry1) * (rightWheelCenterX - rx1) / (rx2 - rx1);
+            double rightOffset = rightGroundY - (rightWheel.localToScene(rightWheel.getBoundsInLocal()).getMaxY());
+            newY += rightOffset;
+            angleDeg = Math.toDegrees(Math.atan2(ry2 - ry1, rx2 - rx1));
+            onGround = true;
+        }
+        if (onGround) {
+            if (isFreeFalling) velocityY = 0;
+            playerModel.setTranslateY(newY);
+            playerModel.setRotate(angleDeg);
+            isFreeFalling = false;
+            return;
+        }
+        isFreeFalling = true;
+        velocityY += gravity * deltaTime;
+        playerModel.setTranslateY(playerModel.getTranslateY() + velocityY * deltaTime);
     }
 
 }

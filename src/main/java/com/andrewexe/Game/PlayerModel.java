@@ -7,11 +7,6 @@ import javafx.scene.shape.Rectangle;
 
 public class PlayerModel {
 
-    /**
-     * Возвращает модель велосипеда с центром в (0,0), длиной 1.0 и высотой 0.3 (в относительных единицах).
-     * Все размеры нормированы, чтобы не зависеть от cellSize.
-     * Для анимации можно трансформировать всю группу (scale, rotate, translate).
-     */
     public static Group getPlayerModel() {
         Group model = new Group();
         Circle left_wheel = new Circle();
