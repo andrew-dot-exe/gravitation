@@ -120,10 +120,13 @@ public class App extends Application {
                 } else if (playerX + player.getPlayerModel().getBoundsInParent().getWidth() > width) {
                     player.getPlayerModel().setTranslateX(width - player.getPlayerModel().getBoundsInParent().getWidth());
                 }
+                // intersects with map
+                if(renderer.isPlayerIntersectingWithMap()){
+                    player.setFreeFalling(false);
+                }
                 if(playerY > height) {
                     player.setFreeFalling(false); // останавливаем свободное падение
                     player.setOffsetBottomEdgeY(height - playerY);
-//                    player.getPlayerModel().setTranslateY(height - 200);
                 } else if (playerY < 0) {
                     player.getPlayerModel().setTranslateY(0);
                 }

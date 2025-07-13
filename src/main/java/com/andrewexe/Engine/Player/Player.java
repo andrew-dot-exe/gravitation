@@ -157,6 +157,13 @@ public class Player extends RigidBody implements GameObject {
         return playerModel;
     }
 
+    public Shape getPlayerLeftWheel() {
+        return (Shape) playerModel.getChildren().get(0);
+    }
+    public Shape getPlayerRightWheel() {
+        return (Shape) playerModel.getChildren().get(1);
+    }
+
     public boolean setMoving(boolean isMoving) {
         this.isMoving = isMoving;
         return this.isMoving;

@@ -147,10 +147,28 @@ public class Renderer {
         // player.rotate(1);
     }
 
-    public void boundsCheck(){
-
+    public boolean isPlayerIntersectingWithMap() {
+        for (Node node : root.getChildren()) {
+            if (node instanceof Line line) {
+                if (Shape.intersect(player.getPlayerLeftWheel(), line).getBoundsInLocal().getWidth() != -1) {
+                    return true;
+                   // System.out.println("Player is intersecting with map at: " + line.getStartX() + ", " + line.getStartY());
+                }
+            }
+        }
+        return false;
     }
 
+    private boolean isRightWheelIntersectingWithMap() {
+        for (Node node : root.getChildren()) {
+            if (node instanceof Line line) {
+                if (Shape.intersect(player.getPlayerRightWheel(), line).getBoundsInLocal().getWidth() != -1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
     /**
      * Рисуе�� клеточки для работы с масштабом и относительными координатами
      */

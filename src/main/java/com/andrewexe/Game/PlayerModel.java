@@ -29,6 +29,7 @@ public class PlayerModel {
         body.setWidth(40);
         body.setHeight(20);
         model.getChildren().addAll(left_wheel, right_wheel, body);
+        // 0 - левое колесо, 1 - правое колесо, 2 - тело
 
         return model;
     }
