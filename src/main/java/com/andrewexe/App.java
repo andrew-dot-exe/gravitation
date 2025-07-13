@@ -28,6 +28,8 @@ public class App extends Application {
     private Renderer renderer;
     private Player player;
 
+    private double deltaTime;
+
 
     private void addListeners() {
         scene.addEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST, event -> {
@@ -36,20 +38,14 @@ public class App extends Application {
         });
         scene.setOnKeyPressed(event -> {
             switch (event.getCode()) {
-                case W:
-                    System.out.println("W pressed");
-                    break;
                 case A:
-                    player.getPlayerModel().setTranslateX(
-                            player.getPlayerModel().getTranslateX() - 10
-                    );
-                    break;
-                case S:
+                    player.incrementXAxisAcceleration(-0.1);
                     break;
                 case D:
-                    player.getPlayerModel().setTranslateX(
-                            player.getPlayerModel().getTranslateX() + 10
-                    );
+                    player.incrementXAxisAcceleration(0.1);
+                    break;
+                case SPACE:
+                    player.handbrake();
                     break;
                 default:
                     break;
@@ -57,18 +53,13 @@ public class App extends Application {
         });
         scene.setOnKeyReleased(event -> {
             switch (event.getCode()) {
-                case W:
-                    System.out.println("W released");
-                    break;
                 case A:
-                    System.out.println("A released");
-                    break;
-                case S:
-                    System.out.println("S released");
+                    player.setMoving(false);
                     break;
                 case D:
-                    System.out.println("D released");
+                    player.setMoving(false);
                     break;
+
                 default:
                     break;
             }
@@ -103,10 +94,37 @@ public class App extends Application {
 
             @Override
             public void handle(long now) {
-                Double deltaTime = getFps(now);
-                if (deltaTime == null) return;
+                if (lastTime == 0) {
+                    lastTime = now;
+                }
+                deltaTime = (now - lastTime) / 1_000_000_000.0;
 //                player.rotate(1);
+                player.update(deltaTime);
+                checkBounds();
                 renderer.update(deltaTime);
+                renderer.showInfo("Axis accel: " + player.getAxisAcceleration() +
+                        ", Brake: " + player.getBrakeAcceleration() +
+                        ", Handbrake: " + player.getHandbrakeAcceleration()+
+                        ", Delta Time: " + deltaTime);
+            }
+
+            private void checkBounds() {
+                double playerX = player.getPlayerModel().getTranslateX();
+                double playerY = player.getPlayerModel().getTranslateY();
+                double width = renderer.getRoot().getWidth();
+                double height = renderer.getRoot().getHeight();
+
+                if (playerX < 0) {
+                    player.getPlayerModel().setTranslateX(0);
+                } else if (playerX + player.getPlayerModel().getBoundsInParent().getWidth() > width) {
+                    player.getPlayerModel().setTranslateX(width - player.getPlayerModel().getBoundsInParent().getWidth());
+                }
+
+                if (playerY < 0) {
+                    player.getPlayerModel().setTranslateY(0);
+                } else if (playerY + player.getPlayerModel().getBoundsInParent().getHeight() > height) {
+                    player.getPlayerModel().setTranslateY(height - player.getPlayerModel().getBoundsInParent().getHeight());
+                }
             }
 
             private Double getFps(long now) {
@@ -121,7 +139,7 @@ public class App extends Application {
                 elapsedTime += deltaTime;
                 if (elapsedTime >= 1.0) {
                     double avgFps = frames / elapsedTime;
-                    //System.out.printf("Avg FPS: %.1f%n", avgFps);
+                    System.out.printf("Avg FPS: %.1f%n", avgFps);
                     frames = 0;
                     elapsedTime = 0;
                 }

@@ -43,6 +43,7 @@ public class Renderer {
 
     // сетка нужна как помощник и как элемент стилизации
     private Group grids;
+    private Player player;
 
     public Pane getRoot() {
         return root;
@@ -70,9 +71,9 @@ public class Renderer {
 
         //this.drawPlayerCentered();
 
-//        this.infoCanvas = new Canvas(400, 40); // ширина и высота области для текста
-//        this.infoGC = infoCanvas.getGraphicsContext2D();
-//        this.root.getChildren().add(infoCanvas);
+        this.infoCanvas = new Canvas(400, 40); // ширина и высота области для текста
+        this.infoGC = infoCanvas.getGraphicsContext2D();
+        this.root.getChildren().add(infoCanvas);
     }
 
     private void drawRawMap(){
@@ -147,8 +148,12 @@ public class Renderer {
      * Обновление игрового поля каждый кадр
      */
     public void update(double deltaTime) {
-        //showInfo("FPS: " + (int) (1 / deltaTime) + ", Delta Time: " + deltaTime);
+        showInfo("FPS: " + (int) (1 / deltaTime) + ", Delta Time: " + deltaTime);
         // player.rotate(1);
+    }
+
+    public void boundsCheck(){
+
     }
 
     /**
@@ -198,6 +203,7 @@ public class Renderer {
     }
 
     public void placePlayer(Player player){
+        this.player = player;
         Line segment = getSegment(2); // Получаем первый сегмент карты
         if (segment != null) {
             double startX = segment.getStartX();
@@ -225,4 +231,7 @@ public class Renderer {
         this.root.getChildren().add(verticalLine);
     }
 
+    public void checkIntersection(){
+
+    }
 }
